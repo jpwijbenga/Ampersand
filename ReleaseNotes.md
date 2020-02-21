@@ -2,6 +2,7 @@
 
 ## Unreleased changes
 
+* Make a docker volume that links to the local directory of a user, who uses Ampersand from the command-line.
 * Refactor Docker image for Ampersand compiler
 * Add continuous integration via Github Actions. With cache.
 * [Issue #991](https://github.com/AmpersandTarski/Ampersand/issues/991) CLI interface has changed. Changes are documented in Commands.md

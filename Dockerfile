@@ -29,6 +29,14 @@ RUN /root/.local/bin/ampersand --version
 # Create a light-weight image that has the Ampersand compiler available
 FROM ubuntu
 
+# To run Ampersand from the command line:
+# docker run -it -v ${pwd}:/scripts docker.pkg.github.com/ampersandtarski/ampersand/ampersand:latest --version
+# --------------------------------------------------------------------------------------------------
+# Comment: the underscored part loads and runs the ampersand image in your working directory.
+# After that, use the ampersand subcommands as defined in --help.
+VOLUME ["/scripts"]
+WORKDIR /scripts
+
 COPY --from=buildstage /root/.local/bin/ampersand /bin/ampersand
 
 ENTRYPOINT ["/bin/ampersand"]
