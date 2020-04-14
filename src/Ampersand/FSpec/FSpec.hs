@@ -41,7 +41,7 @@ import qualified RIO.Text as T
 import qualified RIO.List as L
 import           Text.Pandoc.Builder (Blocks)
 
-data FSpec = FSpec { fsName ::       Text                   -- ^ The name of the specification, taken from the Ampersand script
+data FSpec = FSpec { fsName ::       Text                     -- ^ The name of the specification, taken from the Ampersand script
                    , originalContext :: A_Context             -- ^ the original context. (for showA)  
                    , fspos ::        [Origin]                 -- ^ The origin of the FSpec. An FSpec can be a merge of a file including other files c.q. a list of Origin.
                    , plugInfos ::    [PlugInfo]               -- ^ All plugs (derived)
@@ -53,22 +53,22 @@ data FSpec = FSpec { fsName ::       Text                   -- ^ The name of the
                    , fMaintains ::   Role -> Rules
                    , fRoles ::       [(Role,Int)]             -- ^ All roles mentioned in this context, numbered.
                    , fallRules ::    Rules
-                   , vrules ::       Rules                   -- ^ All user defined rules that apply in the entire FSpec
-                   , grules ::       Rules                   -- ^ All rules that are generated: multiplicity rules and identity rules
-                   , invariants ::   Rules                   -- ^ All invariant rules
-                   , signals ::      Rules                   -- ^ All signal rules
-                   , allUsedDecls :: Relations            -- ^ All relations that are used in the fSpec
-                   , vrels ::        Relations            -- ^ All user defined and generated relations plus all defined and computed totals.
+                   , vrules ::       Rules                    -- ^ All user defined rules that apply in the entire FSpec
+                   , grules ::       Rules                    -- ^ All rules that are generated: multiplicity rules and identity rules
+                   , invariants ::   Rules                    -- ^ All invariant rules
+                   , signals ::      Rules                    -- ^ All signal rules
+                   , allUsedDecls :: Relations                -- ^ All relations that are used in the fSpec
+                   , vrels ::        Relations                -- ^ All user defined and generated relations plus all defined and computed totals.
                                                               --   The generated relations are all generalizations and
                                                               --   one relation for each signal.
-                   , allConcepts ::  A_Concepts              -- ^ All concepts in the fSpec
+                   , allConcepts ::  A_Concepts               -- ^ All concepts in the fSpec
                    , cptTType :: A_Concept -> TType 
                    , vIndices ::     [IdentityDef]            -- ^ All keys that apply in the entire FSpec
                    , vviews ::       [ViewDef]                -- ^ All views that apply in the entire FSpec
                    , getDefaultViewForConcept :: A_Concept -> Maybe ViewDef
                    , getAllViewsForConcept :: A_Concept -> [ViewDef]
                    , lookupView :: String -> ViewDef          -- ^ Lookup view by id in fSpec.
-                   , vgens ::        [AClassify]                  -- ^ All gens that apply in the entire FSpec
+                   , vgens ::        [AClassify]              -- ^ All gens that apply in the entire FSpec
                    , allConjuncts :: [Conjunct]               -- ^ All conjuncts generated (by ADL2FSpec)
                    , allConjsPerRule :: [(Rule,NE.NonEmpty Conjunct)]   -- ^ Maps each rule onto the conjuncts it consists of (note that a single conjunct may be part of several rules) 
                    , allConjsPerDecl :: [(Relation, [Conjunct])]   -- ^ Maps each relation to the conjuncts it appears in   

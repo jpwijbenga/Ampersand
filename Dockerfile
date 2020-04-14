@@ -26,6 +26,9 @@ RUN stack install
 # Display the resulting Ampersand version and SHA
 RUN /root/.local/bin/ampersand --version
 
+RUN apt-get update                           &&\
+    apt-get install --yes texlive-font-utils
+
 # Create a light-weight image that has the Ampersand compiler available
 FROM ubuntu
 
@@ -38,5 +41,10 @@ VOLUME ["/scripts"]
 WORKDIR /scripts
 
 COPY --from=buildstage /root/.local/bin/ampersand /bin/ampersand
+
+RUN apt-get update                 &&\
+    apt-get install --yes graphviz
+
+COPY --from=buildstage /usr/bin/epstopdf /bin/epstopdf
 
 ENTRYPOINT ["/bin/ampersand"]

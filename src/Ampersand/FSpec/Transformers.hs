@@ -178,9 +178,9 @@ transformersFormalAmpersand fSpec = map toTransformer [
         , rul::Rule <- Set.elems $ ctxrs ctx
         ]
       )
-     ,("dbName"                , "Context"               , "DatabaseName"
-      , Set.empty  --TODO
-      )
+      -- At this place we used to have:
+ --  ,("dbName"                , "Context"               , "DatabaseName"
+      -- However, the database name is no longer in an FSpec. So, the relation dbName should not occur in the metamodel of an FSpec.
      ,("declaredIn"            , "Relation"              , "Context" 
       , Set.fromList $
         [(dirtyId rel, dirtyId ctx) 
