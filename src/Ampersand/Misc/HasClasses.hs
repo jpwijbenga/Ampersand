@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleInstances #-}
+﻿{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
-
 module Ampersand.Misc.HasClasses
 
 where
 import Ampersand.Basics
+import Ampersand.Misc.Defaults (defaultDirPrototype)
 import RIO.FilePath
 
 class HasFSpecGenOpts a where
@@ -13,7 +14,7 @@ class HasFSpecGenOpts a where
   sqlBinTablesL = fSpecGenOptsL . (lens xsqlBinTables (\x y -> x { xsqlBinTables = y }))
   genInterfacesL :: Lens' a Bool -- 
   genInterfacesL = fSpecGenOptsL . (lens xgenInterfaces (\x y -> x { xgenInterfaces = y }))
-  namespaceL :: Lens' a String -- prefix database identifiers with this namespace, to isolate namespaces within the same database.
+  namespaceL :: Lens' a Text -- prefix database identifiers with this namespace, to isolate namespaces within the same database.
   namespaceL = fSpecGenOptsL . (lens xnamespace (\x y -> x { xnamespace = y }))
   defaultCrudL :: Lens' a (Bool,Bool,Bool,Bool) -- Default values for CRUD functionality in interfaces
   defaultCrudL = fSpecGenOptsL . lens xdefaultCrud (\x y -> x { xdefaultCrud = y })
@@ -45,19 +46,19 @@ instance HasFSpecGenOpts ProtoOpts where
   fSpecGenOptsL = lens x1fSpecGenOpts (\x y -> x { x1fSpecGenOpts = y })
 class (HasRootFile a) => HasDirPrototype a where
   dirPrototypeL :: Lens' a (Maybe FilePath)
-  getTemplateDir :: a -> String
+  getTemplateDir :: a -> FilePath
   getTemplateDir x = 
     getDirPrototype x </> "templates"
-  getAppDir :: a -> String
+  getAppDir :: a -> FilePath
   getAppDir x =
     getDirPrototype x </> "public" </> "app" </> "project"
-  getGenericsDir :: a -> String
+  getGenericsDir :: a -> FilePath
   getGenericsDir x = 
     getDirPrototype x </> "generics" 
   getDirPrototype :: a -> FilePath
   getDirPrototype x =
     (case view dirPrototypeL x of
-       Nothing -> fromMaybe "" (view (rootFileL) x) <> ".proto"
+       Nothing -> defaultDirPrototype
        Just nm -> nm )
 instance HasDirPrototype ProtoOpts where
   dirPrototypeL = lens xdirPrototype (\x y -> x { xdirPrototype = y })
@@ -66,9 +67,19 @@ class HasAllowInvariantViolations a where
   allowInvariantViolationsL :: Lens' a Bool
 instance (HasFSpecGenOpts a) => HasAllowInvariantViolations a where
   allowInvariantViolationsL = fSpecGenOptsL . (lens xallowInvariantViolations (\x y -> x { xallowInvariantViolations = y }))
+class HasGenerateFrontend a where
+  generateFrontendL :: Lens' a Bool
+instance HasGenerateFrontend ProtoOpts where
+  generateFrontendL = lens xgenerateFrontend (\x y -> x { xgenerateFrontend = y })
+
+class HasGenerateBackend a where
+  generateBackendL :: Lens' a Bool
+instance HasGenerateBackend ProtoOpts where
+  generateBackendL = lens xgenerateBackend (\x y -> x { xgenerateBackend = y })
+
 class HasRootFile a where
   rootFileL :: Lens' a (Maybe FilePath)
-  baseName :: a -> String
+  baseName :: a -> FilePath
   baseName  = fromMaybe (fatal "Cannot determine the basename of the script that is being compiled")
             . fmap takeBaseName
             . view rootFileL
@@ -115,24 +126,18 @@ instance HasOutputLanguage DocOpts where
 instance HasOutputLanguage UmlOpts where
   languageL = lens x4OutputLanguage (\x y -> x { x4OutputLanguage = y })
 
-class HasRunComposer a where
-  skipComposerL :: Lens' a Bool -- if True, runs Composer (php package manager) when generating prototype. Requires PHP and Composer on the machine. Added as switch to disable when building with Docker.
-instance HasRunComposer ProtoOpts where
-  skipComposerL = lens xskipComposer (\x y -> x { xskipComposer = y })
-
-
 class HasDirCustomizations a where
-  dirCustomizationsL :: Lens' a [FilePath] -- the directories that are copied after generating the prototype
+  dirCustomizationsL :: Lens' a (Maybe [FilePath]) -- the directories that are copied after generating the prototype
 instance HasDirCustomizations ProtoOpts where
   dirCustomizationsL = lens xdirCustomizations (\x y -> x { xdirCustomizations = y })
 
 class HasZwolleVersion a where
-  zwolleVersionL :: Lens' a String -- the version in github of the prototypeFramework. can be a tagname, a branchname or a SHA
+  zwolleVersionL :: Lens' a FilePath -- the version in github of the prototypeFramework. can be a tagname, a branchname or a SHA
 instance HasZwolleVersion ProtoOpts where
   zwolleVersionL = lens xzwolleVersion (\x y -> x { xzwolleVersion = y })
 
 class HasDirOutput a where
-  dirOutputL :: Lens' a String -- the directory to generate the output in.
+  dirOutputL :: Lens' a FilePath -- the directory to generate the output in.
 
 class HasOutputLanguage a => HasDocumentOpts a where
   documentOptsL :: Lens' a DocOpts
@@ -159,15 +164,15 @@ instance HasOutputFile InputOutputOpts where
   outputfileL = lens x4outputFile (\x y -> x { x4outputFile = y })
 
 class HasVersion a where
-  preVersionL :: Lens' a String 
-  postVersionL :: Lens' a String 
+  preVersionL :: Lens' a Text 
+  postVersionL :: Lens' a Text 
 
 class HasProtoOpts env where
    protoOptsL :: Lens' env ProtoOpts
-   dbNameL   :: Lens' env (Maybe String)
-   sqlHostL  :: Lens' env String
-   sqlLoginL :: Lens' env String
-   sqlPwdL   :: Lens' env String
+   dbNameL   :: Lens' env (Maybe Text)
+   sqlHostL  :: Lens' env Text
+   sqlLoginL :: Lens' env Text
+   sqlPwdL   :: Lens' env Text
    forceReinstallFrameworkL :: Lens' env Bool
    dbNameL   = protoOptsL . lens xdbName (\x y -> x { xdbName = y })
    sqlHostL  = protoOptsL . lens xsqlHost (\x y -> x { xsqlHost = y })
@@ -225,7 +230,7 @@ data FSpecGenOpts = FSpecGenOpts
   { xrootFile :: !(Maybe FilePath)  --relative path. Must be set the first time it is read.
   , xsqlBinTables :: !Bool
   , xgenInterfaces :: !Bool -- 
-  , xnamespace :: !String -- prefix database identifiers with this namespace, to isolate namespaces within the same database.
+  , xnamespace :: !Text -- prefix database identifiers with this namespace, to isolate namespaces within the same database.
   , xdefaultCrud :: !(Bool,Bool,Bool,Bool)
   , xtrimXLSXCells :: !Bool
   , xrecipeName :: !KnownRecipe 
@@ -267,22 +272,23 @@ data InputOutputOpts = InputOutputOpts
 
 -- | Options for @ampersand proto@.
 data ProtoOpts = ProtoOpts
-   { xdbName :: !(Maybe String)
+   { xdbName :: !(Maybe Text)
    -- ^ Name of the database that is generated as part of the prototype
-   , xsqlHost ::  !String
+   , xsqlHost ::  !Text
    -- ^ do database queries to the specified host
-   , xsqlLogin :: !String
+   , xsqlLogin :: !Text
    -- ^ pass login name to the database server
-   , xsqlPwd :: !String
+   , xsqlPwd :: !Text
    -- ^ pass password on to the database server
    , xforceReinstallFramework :: !Bool
    -- ^ when true, an existing prototype directory will be destroyed and re-installed
    , x1OutputLanguage :: !(Maybe Lang)
    , x1fSpecGenOpts :: !FSpecGenOpts
-   , xskipComposer :: !Bool
    , xdirPrototype :: !(Maybe FilePath)
-   , xdirCustomizations :: ![FilePath]
-   , xzwolleVersion :: !String
+   , xdirCustomizations :: !(Maybe [FilePath])
+   , xzwolleVersion :: !FilePath
+   , xgenerateFrontend :: !Bool
+   , xgenerateBackend :: !Bool
   } deriving Show
 
 -- | Options for @ampersand documentation@.

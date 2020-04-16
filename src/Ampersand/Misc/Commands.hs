@@ -46,7 +46,6 @@ import           Options.Applicative.Builder.Internal hiding (name)
 import           Options.Applicative.Help hiding (fullDesc)
 import           Options.Applicative.Types
 import           Options.Applicative.Common
-import qualified RIO.List as L
 import           RIO.Char 
 import qualified RIO.NonEmpty as NE
 import qualified RIO.Text as T
@@ -63,8 +62,8 @@ import           System.Environment ({-getProgName,-} withArgs)
 
 commandLineHandler
   :: FilePath
-  -> String -- the name of the program
-  -> [String] -- the (command-line) arguments
+  -> Text -- the name of the program
+  -> [Text] -- the (command-line) arguments
   -> IO (GlobalOptsMonoid, RIO Runner ())
 commandLineHandler currentDir _progName args = complicatedOptions
   ampersandVersionWithoutBuildTimeStr
@@ -78,7 +77,7 @@ commandLineHandler currentDir _progName args = complicatedOptions
   where
     failureCallback :: 
            ParserFailure ParserHelp
-        -> [String] 
+        -> [Text] 
         -> IO (GlobalOptsMonoid, (RIO Runner (), t))
     failureCallback f _ = parseResultHandler f
 
@@ -91,7 +90,7 @@ commandLineHandler currentDir _progName args = complicatedOptions
                       ()
     addCommands = do
       addCommand'' Check
-                  "Use ampersand to check your model only once."
+                  "Use ampersand to check your model."
                   checkCmd
                   (fSpecGenOptsParser False)
       addCommand'' Daemon
@@ -99,8 +98,9 @@ commandLineHandler currentDir _progName args = complicatedOptions
                   daemonCmd
                   daemonOptsParser
       addCommand'' Dataanalysis
-                  ( "Export a data model as plain Ampersand script, for "
-                  <>"analysing Excel-data.")
+                  ( "Create an ADL model based on the content of a spreadsheet. The spreadsheet"
+                  <>"must comply to the specific format."
+                  <>"This is an experimental feature.")
                   dataAnalysisCmd
                   (outputFileOptsParser "MetaModel.adl")
       addCommand'' Devoutput
@@ -132,7 +132,7 @@ commandLineHandler currentDir _progName args = complicatedOptions
                   "Generate a prototype from your specification."
                   protoCmd
                   protoOptsParser
-      addCommand'' Print
+      addCommand'' Export
                   "Generate a single .adl file of your script (prettyprinted)"
                   pprintCmd
                   (outputFileOptsParser "export.adl")
@@ -158,17 +158,13 @@ commandLineHandler currentDir _progName args = complicatedOptions
         addCommand'' cmd title constr =
             addCommand (map toLower . show $ cmd) title globalFooter constr (\_ gom -> gom) globalOpts
 
---        addSubCommands' :: String -> String -> AddCommand
---                        -> AddCommand
---        addSubCommands' cmd title =
---            addSubCommands cmd title globalFooter globalOpts
 
 
 
     globalOpts :: Parser GlobalOptsMonoid
     globalOpts =
-      --  extraHelpOption hide progName (Docker.dockerCmdName ++ "*") Docker.dockerHelpOptName <*>
-      --  extraHelpOption hide progName (Nix.nixCmdName ++ "*") Nix.nixHelpOptName <*>
+      --  extraHelpOption hide progName (Docker.dockerCmdName <> "*") Docker.dockerHelpOptName <*>
+      --  extraHelpOption hide progName (Nix.nixCmdName <> "*") Nix.nixHelpOptName <*>
         globalOptsParser currentDir Nothing
 
     globalFooter = "Run 'ampersand --help' for global options that apply to all subcommands."
@@ -183,19 +179,19 @@ type AddCommand =
 -- | Generate and execute a complicated options parser.
 complicatedOptions
   :: Monoid a
-  => String
+  => Text
   -- ^ version string
-  -> String
+  -> Text
   -- ^ header
-  -> String
+  -> Text
   -- ^ program description (displayed between usage and options listing in the help output)
-  -> String
+  -> Text
   -- ^ footer
-  -> [String]
+  -> [Text]
   -- ^ command-line arguments (unparsed)
   -> Parser a
   -- ^ common settings
-  -> Maybe (ParserFailure ParserHelp -> [String] -> IO (a,(b,a)))
+  -> Maybe (ParserFailure ParserHelp -> [Text] -> IO (a,(b,a)))
   -- ^ optional handler for parser failure; 'handleParseResult' is called by
   -- default
   -> ExceptT b (Writer (Mod CommandFields (b,a))) ()
@@ -204,7 +200,7 @@ complicatedOptions
 complicatedOptions stringVersion h pd footerStr args commonParser mOnFailure commandParser = do
      runSimpleApp $ do
           logDebug $ displayShow helpDoc'
-     (a,(b,c)) <- case execParserPure myPreferences parser args of
+     (a,(b,c)) <- case execParserPure myPreferences parser (T.unpack <$> args) of
        Failure _ | null args -> withArgs ["--help"] (execParser parser)
        -- call onFailure handler if it's present and parsing options failed
        Failure f | Just onFailure <- mOnFailure -> onFailure f args
@@ -225,11 +221,12 @@ complicatedOptions stringVersion h pd footerStr args commonParser mOnFailure com
         myDescriptionFunction _info' opt = dullyellow <$>
                 paragraph (show opt) -- optHelp opt -- "Een of andere optie."
         parser = info (helpOption <*> versionOptions <*> complicatedParser "COMMAND" commonParser commandParser) desc
-        desc = fullDesc <> header h <> progDesc pd <> footer footerStr
+        desc = fullDesc <> header (T.unpack h) <> progDesc (T.unpack pd) <> footer (T.unpack footerStr)
         versionOptions = versionOption stringVersion
-        versionOption s =
+        versionOption :: Text -> Parser (a -> a)
+        versionOption txt =
           infoOption
-            s
+            (T.unpack txt)
             (long "version" <>
              help "Show version")
 
@@ -248,11 +245,11 @@ addCommand cmd title footerStr constr extendCommon =
 -- -- | Add a command that takes sub-commands to the options dispatcher.
 -- addSubCommands
 --   :: Monoid c
---   => String
+--   => Text
 --   -- ^ command string
---   -> String
+--   -> Text
 --   -- ^ title of command
---   -> String
+--   -> Text
 --   -- ^ footer of command help
 --   -> Parser c
 --   -- ^ common parser
@@ -360,7 +357,7 @@ checkCmd opts =
         mFSpec <- createFspec recipe
         doOrDie mFSpec doNothing
    where doNothing fSpec = do
-            logInfo $ "This script of "<>(display . T.pack . name $ fSpec)<>" contains no type errors."     
+            logInfo $ "This script of "<>(display . name $ fSpec)<>" contains no type errors."     
 populationCmd :: PopulationOpts -> RIO Runner ()
 populationCmd opts = 
     extendWith opts $ do
@@ -411,11 +408,10 @@ doOrDie gA act =
     Checked a ws -> do
       showWarnings ws
       act a
-    Errors err -> exitWith . NoValidFSpec . L.intersperse  (replicate 30 '=') 
-           . fmap show . NE.toList $ err
+    Errors err -> exitWith . NoValidFSpec . T.lines . T.intercalate  (T.replicate 30 "=") 
+           . NE.toList . fmap tshow $ err
   where
     showWarnings ws = mapM_ logWarn (fmap displayShow ws)  
-
 
 data Command = 
         Check
@@ -423,16 +419,26 @@ data Command =
       | Dataanalysis
       | Devoutput
       | Documentation
-      | Fpa
-      | Init
+      | Export
       | Population
       | Proofs
       | Proto 
-      | Print
       | Test
       | Uml
-      | Validate deriving Show
-
+      | Validate
+instance Show Command where
+  show Check = "check"
+  show Daemon = "daemon"
+  show Dataanalysis = "data-analysis"
+  show Devoutput = "dev-output"
+  show Documentation = "documentation"
+  show Export = "export"
+  show Population = "population"
+  show Proofs = "proofs"
+  show Proto = "proto" 
+  show Test = "test"
+  show Uml = "uml"
+  show Validate = "validate"
 -- | Generic way to specify the recipe to be used to generate an FSpec
 recipeBuilder :: (HasFSpecGenOpts env) => Bool -> env -> BuildRecipe
 recipeBuilder isForPrototype env = 
