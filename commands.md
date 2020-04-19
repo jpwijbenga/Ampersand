@@ -54,7 +54,7 @@ even more complex than it already was.
           Markdown, Mediawiki, Opendocument, Org, Pandoc, Pdf, Plain, Rst,
           Rtf, Texinfo, Textile]), to kick-start your functional
           specification.
-  * ***--proto[=DIRECTORY]*** `proto --proto-directory=DIRECTORY`
+  * ***--proto[=DIRECTORY]*** `proto --proto-dir=DIRECTORY`
           generate a functional prototype, so you can experiment with the
           information system specified in your script.
   * ***--dataAnalysis[=file]*** `data-analysis`
