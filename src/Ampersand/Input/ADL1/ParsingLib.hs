@@ -125,6 +125,8 @@ pAmpersandMarkup = check (\lx -> case lx of { LexMarkup s -> Just s; _ -> Nothin
 pVarid :: AmpParser String
 pVarid = check (\lx -> case lx of { LexVarId s -> Just s; _ -> Nothing }) <?> "lower case identifier"
 
+-- @Han, This code maps LexVarId "aCRoUnDed" to Just "aCRoUnDed", but "abRoUnDed" to Nothing.
+-- Why is that? To me this feels like imprecise parsing...
 pCrudString :: AmpParser String
 pCrudString = check (\lx -> case lx of 
                               LexConId s -> testCrud s 
@@ -149,6 +151,7 @@ data Value = VRealString Text
            | VBoolean Bool
            | VDateTime UTCTime
            | VDate Day
+           
 pAtomValInPopulation :: Bool -> AmpParser Value
 -- An atomvalue can be lots of things. However, since it can be used in 
 -- as a term (singleton expression), an ambiguity might occur if we allow
