@@ -129,7 +129,7 @@ instance Arbitrary MetaObj where
     arbitrary = pure ContextMeta
 
 instance Arbitrary P_RoleRule where
-    arbitrary = Maintain <$> arbitrary <*> arbitrary <*> listOf1 safeStr
+    arbitrary = Maintain <$> arbitrary <*> arbitrary <*> listOf1 identifier
 
 listOf1 :: Gen a -> Gen (NE.NonEmpty a)
 listOf1 p = (NE.:|) <$> p <*> listOf p
