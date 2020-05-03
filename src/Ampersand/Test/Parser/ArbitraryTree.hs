@@ -142,8 +142,8 @@ instance Arbitrary TType where
 
 instance Arbitrary Role where
     arbitrary =
-      oneof [ Role    <$> safeStr
-            , Service <$> safeStr
+      oneof [ Role    <$> identifier
+            , Service <$> identifier
             ]
 
 instance Arbitrary P_Pattern where
