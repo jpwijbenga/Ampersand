@@ -296,7 +296,7 @@ instance Arbitrary ViewHtmlTemplate where
     arbitrary = ViewHtmlTemplateFile <$> safeFilePath
 
 instance Arbitrary a => Arbitrary (P_ViewSegment a) where
-    arbitrary = P_ViewSegment <$> (Just <$> safeStr) <*> arbitrary <*> arbitrary 
+    arbitrary = P_ViewSegment <$> (Just <$> identifier) <*> arbitrary <*> arbitrary 
 instance Arbitrary a => Arbitrary (P_ViewSegmtPayLoad a) where
     arbitrary =
         oneof [ P_ViewExp  <$> sized(genTerm 1) -- only accepts pTerm, no pRule.
