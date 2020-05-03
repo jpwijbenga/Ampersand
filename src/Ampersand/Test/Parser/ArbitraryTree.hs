@@ -36,13 +36,14 @@ safeFilePath = T.unpack <$> safeStr
 
 -- Genrates a valid ADL identifier
 identifier :: Gen Text
-identifier = suchThat str2 noKeyword
+identifier = str2 `suchThat` noKeyword
     where noKeyword :: Text -> Bool
           noKeyword x = x `notElem` (map T.pack keywords)
           -- The prelude functions accept Unicode characters
-          idChar = elements (['a'..'z']++['A'..'Z']++['0'..'9']++"_")
+          firstChar = ['a'..'z']++['A'..'Z']
+          restChar = firstChar ++ ['0'..'9']++"_"
           str2 :: Gen Text
-          str2   = (T.pack <$> listOf idChar) `suchThat` (\s -> T.length s > 1)
+          str2 = T.pack <$> ( (:) <$> (elements firstChar) <*> (listOf (elements restChar)))
 
 -- Genrates a valid ADL upper-case identifier
 upperId :: Gen Text
